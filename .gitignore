@@ -1,0 +1,4 @@
+start_*
+clean_all
+setup_feds
+stop_all

@@ -1,0 +1,10 @@
+[
+ {rabbit, [
+           {tcp_listeners, [<%= @main_port %>]}
+                           ]},
+           {rabbitmq_management,
+            [{listener, [{port, <%= @mgmt_port %>},
+                            {ip, "127.0.0.1"}
+                         ]}
+             ]}
+           ].

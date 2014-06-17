@@ -27,7 +27,8 @@ end
   FederationLink.add("#{from.node_name}@#{HOST}",
                      to.node_name,
                      'federated_*',
-                     { uri: "amqp://guest:guest@localhost:#{to.main_port}" })
+                     { uri: "amqp://guest:guest@localhost:#{to.main_port}",
+                       'max-hops' => 4 })
 end
 
 NodeTemplate.render_all

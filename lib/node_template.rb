@@ -8,8 +8,41 @@ require 'fileutils'
 class NodeTemplate
   @all_nodes = []
   TEMPLATE_DIR = File.expand_path('../..', __FILE__)
+  BIN_DIR = File.expand_path('../..', __FILE__)
   class << self
     attr_reader :all_nodes
+  end
+
+  def self.add(*args)
+    @all_nodes << new(*args)
+  end
+
+  def self.render_all
+    @all_nodes.each { |node| node.render }
+  end
+
+  def self.write_bins
+    start_all = File.join(BIN_DIR, 'start_all')
+    File.open(start_all, 'w') do |f|
+      f.puts(all_nodes.map do |node|
+               "./start_#{node.node_name}"
+             end.join("\n"))
+    end
+
+    stop_all = File.join(BIN_DIR, 'stop_all')
+    File.open(stop_all, 'w') do |f|
+      f.puts(all_nodes.map do |node|
+               "rabbitmqctl -n #{node.node_name}@#{HOST} stop"
+             end.join("\n"))
+    end
+
+    clean_all = File.join(BIN_DIR, 'clean_all')
+    File.open(clean_all, 'w') do |f|
+      f.puts 'rm -rf ' +
+        NodeTemplate.all_nodes.map { |t| t.node_name }.join(' ')
+    end
+
+    [start_all, stop_all, clean_all].each { |p| FileUtils.chmod('u+x', p) }
   end
 
   attr_accessor :node_dir, :node_name
@@ -20,7 +53,6 @@ class NodeTemplate
     args.each_pair do |var, val|
       instance_variable_set("@#{var}", val)
     end
-    self.class.all_nodes << self
   end
 
   def render

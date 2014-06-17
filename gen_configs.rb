@@ -8,29 +8,27 @@ require 'federation_link'
 
 HOST = `hostname -s`.chomp
 
-[
- {
-   node_dir: 'node1',
-   node_name: 'node1',
-   main_port: 5000,
-   mgmt_port: 3000
- },
- {
-   node_dir: 'node2',
-   node_name: 'node2',
-   main_port: 5001,
-   mgmt_port: 3001
- }
-].each { |node| NodeTemplate.add(node) }
+(1..5).each do |ix|
+  NodeTemplate.add(node_dir: "node#{ix}",
+                   node_name: "node#{ix}",
+                   main_port: 5000 + ix,
+                   mgmt_port: 3000 + ix)
+end
 
-FederationLink.add("node1@#{HOST}",
-                   'node2',
-                   'federated_*',
-                   { uri: 'amqp://guest:guest@localhost:5001' })
-FederationLink.add("node2@#{HOST}",
-                   'node1',
-                   'federated_*',
-                   { uri: 'amqp://guest:guest@localhost:5000' })
+{
+  1 => 2,
+  2 => 3,
+  3 => 4,
+  4 => 5,
+  5 => 1
+}.each_pair do |from_ix, to_ix|
+  from = NodeTemplate["node#{from_ix}"]
+  to = NodeTemplate["node#{to_ix}"]
+  FederationLink.add("#{from.node_name}@#{HOST}",
+                     to.node_name,
+                     'federated_*',
+                     { uri: "amqp://guest:guest@localhost:#{to.main_port}" })
+end
 
 NodeTemplate.render_all
 NodeTemplate.write_bins

@@ -6,32 +6,37 @@ require 'fileutils'
 # Represents the configuration of a local node
 # generates a directory, config files, and start script for the node
 class NodeTemplate
-  @all_nodes = []
+  @all_nodes = {}
   TEMPLATE_DIR = File.expand_path('../..', __FILE__)
   BIN_DIR = File.expand_path('../..', __FILE__)
   class << self
     attr_reader :all_nodes
   end
 
+  def self.[](name)
+    @all_nodes[name]
+  end
+
   def self.add(*args)
-    @all_nodes << new(*args)
+    node = new(*args)
+    @all_nodes[node.node_name] = node
   end
 
   def self.render_all
-    @all_nodes.each { |node| node.render }
+    @all_nodes.each_value { |node| node.render }
   end
 
   def self.write_bins
     start_all = File.join(BIN_DIR, 'start_all')
     File.open(start_all, 'w') do |f|
-      f.puts(all_nodes.map do |node|
+      f.puts(all_nodes.each_value.map do |node|
                "./start_#{node.node_name}"
              end.join("\n"))
     end
 
     stop_all = File.join(BIN_DIR, 'stop_all')
     File.open(stop_all, 'w') do |f|
-      f.puts(all_nodes.map do |node|
+      f.puts(all_nodes.each_value.map do |node|
                "rabbitmqctl -n #{node.node_name}@#{HOST} stop"
              end.join("\n"))
     end
@@ -39,7 +44,7 @@ class NodeTemplate
     clean_all = File.join(BIN_DIR, 'clean_all')
     File.open(clean_all, 'w') do |f|
       f.puts 'rm -rf ' +
-        NodeTemplate.all_nodes.map { |t| t.node_name }.join(' ')
+        NodeTemplate.all_nodes.each_value.map { |t| t.node_name }.join(' ')
     end
 
     [start_all, stop_all, clean_all].each { |p| FileUtils.chmod('u+x', p) }

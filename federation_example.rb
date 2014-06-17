@@ -29,7 +29,7 @@ q5.bind(t5, routing_key: 'test.*')
 
 # publish a message on node 2
 puts 'PUBLISHING'
-from_node = 1
+from_node = 4
 nodes[from_node].channel.topic('federated_1').publish("hi test from node #{from_node}", routing_key: 'test.foo')
 
 q5.subscribe(block: true) do |di, m, p|

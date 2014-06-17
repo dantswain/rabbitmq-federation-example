@@ -1,0 +1,11 @@
+#!/bin/sh
+echo ${PWD}
+export RABBITMQ_BASE=${PWD}/<%= @node_dir %>
+export RABBITMQ_CONFIG_FILE=${PWD}/<%= @node_dir %>/rabbitmq
+export RABBITMQ_PLUGINS_EXPAND_DIR=${PWD}/<%= @node_dir %>/plugins
+export RABBITMQ_ENABLED_PLUGINS_FILE=${PWD}/<%= @node_dir %>/enabled_plugins
+export RABBITMQ_MNESIA_DIR=${PWD}/<%= @node_dir %>/mnesia
+export RABBITMQ_LOG_BASE=${PWD}/<%= @node_dir %>/logs
+export RABBITMQ_NODENAME=<%= @node_name %>
+export RABBITMQ_NODE_PORT=<%= @main_port %>
+rabbitmq-server -detached &

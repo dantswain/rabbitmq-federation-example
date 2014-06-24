@@ -25,8 +25,11 @@ class FederationLink
     end
   end
 
+  def self.setup_feds
+    File.join(BIN_DIR, 'setup_feds')
+  end
+
   def self.write_bins
-    setup_feds = File.join(BIN_DIR, 'setup_feds')
     File.open(setup_feds, 'w') do |f|
       FederationLink.all_links.values.each do |link|
         f.puts link.to_cmd

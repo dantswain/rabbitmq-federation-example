@@ -1,6 +1,6 @@
-# RabbitMQ Federation Setup Example
+# RabbitMQ Federation and Shovel Setup Example
 
-This repository provides a way to explore RabbitMQ exchange federation for cross-datacenter messaging.
+This repository provides a way to explore RabbitMQ exchange federation and shovels for cross-datacenter messaging.
 It was inspired by [https://github.com/jamescarr/rabbitmq-federation-example](https://github.com/jamescarr/rabbitmq-federation-example).
 This repo uses Ruby to generate config files, with the goal of being able to generate an arbitrary number of nodes and
 federation configuration.
@@ -8,48 +8,47 @@ federation configuration.
 ## Usage
 
 Edit `gen_configs.rb` to suit your needs and then run `ruby gen_configs.rb`.  This will create
-one directory for each node defined as an instance of `NodeTemplate`, a start script for each node,
-and a `setup_feds` script to setup the federation links.
+one directory for each node defined as an instance of `Node`, a start script for each node,
+and a `setup_feds` script to setup the federation links, and a `setup_shovels` script to setup
+the shovel exchanges and queues.
 
 * To create node configs and scripts: `ruby gen_configs.rb`
 * To start nodes: `./start_all`
 * To establish federation links: `./setup_feds`
+* To set up shovels: `./setup_shovels`
 * To stop nodes: `./stop_all`
 * To remove all generated files: `./clean_all`
 
 ## Changing the topology (Templating usage)
 
-The `NodeTemplate` class can be used to generate a node:
+The `Node` class can be used to generate a node:
 
 ``` ruby
-NodeTemplate.add(node_dir: "test_node",  # directory where configs are written
-                 node_name: "test_node", # name used for connection => test_node@localhost
-                 main_port: 5000,        # main amqp port for connections
-                 mgmt_port: 3000)        # port where the management web app will run => http://localhost:3000/
+Node.add(node_dir: "test_node",  # directory where configs are written
+         name:      "test_node", # name used for connection => test_node@localhost
+         port:      5000,        # main amqp port for connections
+         mgmt_port: 3000)        # port where the management web app will run => http://localhost:3000/
 ```
 
-The `NodeTemplate.add` method will register the node with the `NodeTemplate` class.  The
-corresponding instance is then available via `NodeTemplate[node_name]`.
+The `Node.add` method will register the node with the `Node` class.  The
+corresponding instance is then available via `Node[name]`.
 
 The `FederationLink` class can be used to generate `rabbitmqctl` commands that establish
 federation links and policies between the nodes:
 
 ``` ruby
-# assume NodeTemplate has instances with names 'from_node' and 'to_node'
-FederationLink.add('from_node',   # downstream node name
-                   'mybox',       # server hostname for upstream (assumes same)
-                   'to_node',     # upstream node name
-                   'federated_*', # policy matching string => all exchanges with names
-                                  #  matching 'federated_*' will have the federation
-                                  #  policy applied
-                   uri: 'amqp://guest:guest@localhost:5000',
-                                  # amqp connection string for upstream
+# assume Node instances from and to
+FederationLink.add(from,            # upstream node
+                   to,              # downstream node
+                   'federated_*',   # policy matching string => all exchanges with names
+                                    #  matching 'federated_*' will have the federation
+                                    #  policy applied
                    'max-hops' => 2) # set max-hops parameter
 ```
 
-## Example script
+## Example scripts
 
-The example script shows how to set up a federated exchange (as per the example configs),
+The federation example script shows how to set up a federated exchange (as per the example configs),
 bind queues to the federated exchanges on a given node, post to one node and receive on another.
 
 ```
@@ -59,3 +58,10 @@ ruby federation_example.rb
 Note that the example sometimes does not work correctly on the first run.  I'm not 100% sure why
 this is - it seems to have something to do with setting up the exchange and queues in the same
 script run.
+
+The shovel example script shows how to publish to a source exchange and recieve the message on
+all listening queues.
+
+```
+ruby shovel_example.rb
+```

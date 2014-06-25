@@ -11,6 +11,7 @@ require 'fileutils'
 $LOAD_PATH.unshift(File.join(File.dirname(__FILE__), 'lib'))
 require 'node_template'
 require 'federation_link'
+require 'shovel'
 
 HOST = `hostname -s`.chomp
 
@@ -27,11 +28,11 @@ end
 #   node 3 has node 1 as upstream
 #     .. etc
 topology = {
-  1 => [2, 3, 4, 5],
-  2 => 1,
-  3 => 1,
-  4 => 1,
-  5 => 1
+  1 => [3, 4],
+  2 => [3, 4],
+  3 => [1, 2, 4, 5],
+  4 => [1, 2, 3, 5],
+  5 => [3, 4]
 }
 
 # another example - a directed ring graph
@@ -56,6 +57,22 @@ topology.each_pair do |from_ix, to_ixs|
   end
 end
 
+`rabbitmqadmin -P 3001 declare exchange name=shovel_test_source type=topic`
+(1..3).each do |ix|
+  Shovel.add("test_shovel_#{ix}", 'node1@imacomputer',
+             {
+               'src-uri' => 'amqp://guest:guest@localhost:5001',
+               'src-exchange' => 'shovel_test_source',
+               'src-exchange-key' => '*',
+               'dest-uri' => "amqp://guest:guest@localhost:500#{ix}",
+               'dest-exchange' => 'shovel_test_dest',
+             })
+  `rabbitmqadmin -P 300#{ix} declare exchange name=shovel_test_dest type=topic`
+  `rabbitmqadmin -P 300#{ix} declare queue name=shovel_listener durable=true`
+  `rabbitmqadmin -P 300#{ix} declare binding source="shovel_test_dest" destination="shovel_listener" routing_key="*"`
+end
+
 NodeTemplate.render_all
 NodeTemplate.write_bins
 FederationLink.write_bins
+Shovel.write_bins

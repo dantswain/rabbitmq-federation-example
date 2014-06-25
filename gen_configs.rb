@@ -55,9 +55,8 @@ topology.each_pair do |from_ix, to_ixs|
   end
 end
 
-#`rabbitmqadmin -P 3001 declare exchange name=shovel_test_source type=topic`
 (1..3).each do |ix|
-  Shovel.add("test_shovel_#{ix}", 'node1@imacomputer',
+  Shovel.add("test_shovel_#{ix}", Node["node#{ix}"],
              {
                'src-uri' => 'amqp://guest:guest@localhost:5001',
                'src-exchange' => 'shovel_test_source',
@@ -65,10 +64,11 @@ end
                'dest-uri' => "amqp://guest:guest@localhost:500#{ix}",
                'dest-exchange' => 'shovel_test_dest',
              })
-  #`rabbitmqadmin -P 300#{ix} declare exchange name=shovel_test_dest type=topic`
-  #`rabbitmqadmin -P 300#{ix} declare queue name=shovel_listener durable=true`
-  #`rabbitmqadmin -P 300#{ix} declare binding source="shovel_test_dest" destination="shovel_listener" routing_key="*"`
+    .command(3000 + ix, 'declare exchange name=shovel_test_dest type=topic')
+    .command(3000 + ix, 'declare queue name=shovel_listener durable=true')
+    .command(3000 + ix, 'declare binding source="shovel_test_dest" destination="shovel_listener" routing_key="*"')
 end
+Shovel["test_shovel_1"].command(3001, "declare exchange name=shovel_test_source type=topic")
 
 Node.render_all
 Node.write_bins

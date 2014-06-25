@@ -29,15 +29,30 @@ class Shovel
     FileUtils.chmod('u+x', setup_shovels)
   end
 
-  attr_accessor :name, :on_node, :config
+  def self.[](name)
+    @all_shovels[name]
+  end
+
+  attr_accessor :name, :on_node, :config, :commands
 
   def initialize(name, on_node, config)
     @name = name
     @on_node = on_node
     @config = config
+    @commands = []
+  end
+
+  def command(mgmt_port, command)
+    @commands << "rabbitmqadmin -P #{mgmt_port} #{command}"
+    self  # return self for chaining
   end
 
   def to_cmd
-    "rabbitmqctl -n #{@on_node} set_parameter shovel #{@name} '#{@config.to_json}'"
+    # note management commands should come first since we might
+    # need to ensure that an exchange exists
+    [
+     @commands,
+     "rabbitmqctl -n #{@on_node.to_ctl} set_parameter shovel #{@name} '#{@config.to_json}'"
+    ].flatten.join("\n")
   end
 end

@@ -36,7 +36,10 @@ class Node
     # this file gets populated by FederationLink;
     # we just need the path of it here
     setup_feds = FederationLink.setup_feds
-    generated_files = [start_all, stop_all, clean_all, setup_feds] +
+    # similar for Shovel
+    setup_shovels = Shovel.setup_shovels
+
+    generated_files = [start_all, stop_all, clean_all, setup_feds, setup_shovels] +
       all_nodes.each_value.map { |n| "start_#{n.name}" }
 
     File.open(start_all, 'w') do |f|

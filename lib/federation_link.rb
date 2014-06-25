@@ -16,12 +16,12 @@ class FederationLink
     expires: 360000
   }
 
-  def self.add(downstream, host, upstream_name, exchange_pattern, config)
-    if @all_links[downstream]
-      @all_links[downstream].add_upstream(upstream_name, config)
+  def self.add(downstream, upstream, exchange_pattern, config)
+    if @all_links[downstream.name]
+      @all_links[downstream.name].add_upstream(upstream, config)
     else
-      @all_links[downstream] = new(downstream, host, upstream_name,
-                                   exchange_pattern, config)
+      @all_links[downstream.name] = new(downstream, upstream,
+                                        exchange_pattern, config)
     end
   end
 
@@ -39,39 +39,33 @@ class FederationLink
     FileUtils.chmod('u+x', setup_feds)
   end
 
-  def initialize(downstream, downstream_host, upstream_name, exchange_pattern, in_config)
+  def initialize(downstream, upstream, exchange_pattern, in_config)
     @downstream = downstream
-    @downstream_host = downstream_host
-    @upstreams = { upstream_name => DEFAULT_CONFIG.merge(in_config) }
     @exchange_pattern = exchange_pattern
     @upstreams = {}
-    add_upstream(upstream_name, in_config)
+    add_upstream(upstream, in_config)
   end
 
-  def add_upstream(upstream_name, config)
-    @upstreams[upstream_name] = DEFAULT_CONFIG.merge(config)
-  end
-
-  def node_connection
-    @downstream + '@' + @downstream_host
+  def add_upstream(upstream, config)
+    @upstreams[upstream] = DEFAULT_CONFIG.merge(config)
   end
 
   def to_cmd
-    upstream_set = @upstreams.keys.map do |name|
-      { upstream: name }
+    upstream_set = @upstreams.keys.map do |upstream|
+      { upstream: upstream.name }
     end
     [
-     @upstreams.each_pair.map do |name, config|
-       "rabbitmqctl -n #{node_connection} set_parameter " +
-         "federation-upstream #{name} '#{config.to_json}'"
+     @upstreams.each_pair.map do |upstream, config|
+       "rabbitmqctl -n #{@downstream.to_ctl} set_parameter " +
+         "federation-upstream #{upstream.name} '#{config.merge(uri: upstream.uri).to_json}'"
      end,
-     "rabbitmqctl -n #{node_connection} set_parameter federation-upstream-set " +
-     "#{@downstream}_federators '#{upstream_set.to_json}'"
+     "rabbitmqctl -n #{@downstream.to_ctl} set_parameter federation-upstream-set " +
+       "#{@downstream.name}_federators '#{upstream_set.to_json}'"
     ].flatten.join("\n")
   end
 
   def to_policy
-    policy = { 'federation-upstream-set' => "#{@downstream}_federators" }
-    "rabbitmqctl -n #{node_connection} set_policy --apply-to exchanges federate-me \"#{@exchange_pattern}\" '#{policy.to_json}'"
+    policy = { 'federation-upstream-set' => "#{@downstream.name}_federators" }
+    "rabbitmqctl -n #{@downstream.to_ctl} set_policy --apply-to exchanges federate-me \"#{@exchange_pattern}\" '#{policy.to_json}'"
   end
 end

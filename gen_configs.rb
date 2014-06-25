@@ -17,9 +17,9 @@ HOST = `hostname -s`.chomp
 
 (1..5).each do |ix|
   Node.add(node_dir: "node#{ix}",
-                   node_name: "node#{ix}",
-                   main_port: 5000 + ix,
-                   mgmt_port: 3000 + ix)
+           name: "node#{ix}",
+           port: 5000 + ix,
+           mgmt_port: 3000 + ix)
 end
 
 # read as:
@@ -48,16 +48,14 @@ topology.each_pair do |from_ix, to_ixs|
   [to_ixs].flatten.each do |to_ix|
     from = Node["node#{from_ix}"]
     to = Node["node#{to_ix}"]
-    FederationLink.add(from.node_name,
-                       HOST,
-                       to.node_name,
+    FederationLink.add(from,
+                       to,
                        'federated_*',
-                       uri: "amqp://guest:guest@localhost:#{to.main_port}",
                        'max-hops' => 2)
   end
 end
 
-`rabbitmqadmin -P 3001 declare exchange name=shovel_test_source type=topic`
+#`rabbitmqadmin -P 3001 declare exchange name=shovel_test_source type=topic`
 (1..3).each do |ix|
   Shovel.add("test_shovel_#{ix}", 'node1@imacomputer',
              {
@@ -67,9 +65,9 @@ end
                'dest-uri' => "amqp://guest:guest@localhost:500#{ix}",
                'dest-exchange' => 'shovel_test_dest',
              })
-  `rabbitmqadmin -P 300#{ix} declare exchange name=shovel_test_dest type=topic`
-  `rabbitmqadmin -P 300#{ix} declare queue name=shovel_listener durable=true`
-  `rabbitmqadmin -P 300#{ix} declare binding source="shovel_test_dest" destination="shovel_listener" routing_key="*"`
+  #`rabbitmqadmin -P 300#{ix} declare exchange name=shovel_test_dest type=topic`
+  #`rabbitmqadmin -P 300#{ix} declare queue name=shovel_listener durable=true`
+  #`rabbitmqadmin -P 300#{ix} declare binding source="shovel_test_dest" destination="shovel_listener" routing_key="*"`
 end
 
 Node.render_all

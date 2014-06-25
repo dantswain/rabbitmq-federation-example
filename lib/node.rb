@@ -22,7 +22,7 @@ class Node
 
   def self.add(*args)
     node = new(*args)
-    @all_nodes[node.node_name] = node
+    @all_nodes[node.name] = node
   end
 
   def self.render_all
@@ -37,23 +37,23 @@ class Node
     # we just need the path of it here
     setup_feds = FederationLink.setup_feds
     generated_files = [start_all, stop_all, clean_all, setup_feds] +
-      all_nodes.each_value.map { |t| "start_#{t.node_name}" }
+      all_nodes.each_value.map { |n| "start_#{n.name}" }
 
     File.open(start_all, 'w') do |f|
       f.puts(all_nodes.each_value.map do |node|
-               "./start_#{node.node_name}"
+               "./start_#{node.name}"
              end.join("\n"))
     end
 
     File.open(stop_all, 'w') do |f|
       f.puts(all_nodes.each_value.map do |node|
-               "rabbitmqctl -n #{node.node_name}@#{HOST} stop"
+               "rabbitmqctl -n #{node.name}@#{HOST} stop"
              end.join("\n"))
     end
 
     File.open(clean_all, 'w') do |f|
       f.puts 'rm -rf ' +
-        all_nodes.each_value.map { |t| t.node_name }.join(' ')
+        all_nodes.each_value.map { |n| n.name }.join(' ')
       generated_files.each do |g|
         f.puts "rm -f #{g}"
       end
@@ -62,18 +62,32 @@ class Node
     generated_files.each { |p| FileUtils.chmod('u+x', p) if File.exist?(p) }
   end
 
-  attr_accessor :node_dir, :node_name
-  attr_accessor :main_port, :mgmt_port, :upstream_port, :upstream
-  attr_accessor :host
+  attr_accessor :node_dir, :name
+  attr_accessor :port, :mgmt_port
+  attr_accessor :host, :user, :password
 
   def initialize(args)
+    # default values
+    @user = 'guest'
+    @password = 'guest'
+    @host = `hostname -s`.chomp
+
+    # explode args to instance vars
     args.each_pair do |var, val|
       instance_variable_set("@#{var}", val)
     end
   end
 
+  def uri
+    "amqp://#{user}:#{password}@#{host}:#{port}"
+  end
+
+  def to_ctl
+    "#{name}@#{host}"
+  end
+
   def render
-    node_starter = "start_#{@node_name}"
+    node_starter = "start_#{@name}"
     FileUtils.mkdir_p(@node_dir)
     File.open(File.join(@node_dir, 'rabbitmq.config'), 'w') do |f|
       f.puts ERB.new(File.read(File.join(TEMPLATE_DIR, 'rabbitmq.config.erb'))).result(binding)

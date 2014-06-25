@@ -1,6 +1,6 @@
 [
  {rabbit, [
-           {tcp_listeners, [<%= @main_port %>]}
+           {tcp_listeners, [<%= @port %>]}
                            ]},
            {rabbitmq_management,
             [{listener, [{port, <%= @mgmt_port %>},

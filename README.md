@@ -46,6 +46,25 @@ FederationLink.add(from,            # upstream node
                    'max-hops' => 2) # set max-hops parameter
 ```
 
+The `Shovel` class can be used to generate `rabbitmqctl` commands that establish shovel links
+between exchanges or queues:
+
+``` ruby
+Shovel.add("shovel_name",   # name for the shovel
+           on_node,         # node to which we want to install the shovel
+           {                # configuration hash
+             'src-uri' => source_node.uri,
+             'src-exchange' => 'shovel_source',
+             'dest-uri' => dest_node.uri,
+             'dest-exchange' => 'shovel_dest'
+           })
+  .command(source_node.mgmt_port, 'declare exchange name="shovel_source"')
+  .command(dest_node.mgmt_port, 'declare exchange name="shovel_dest')
+```
+
+Note Shovel has a `#command` method to stage `rabbitmqadmin` commands for
+creating the necessary exchanges and queues.
+
 ## Example scripts
 
 The federation example script shows how to set up a federated exchange (as per the example configs),

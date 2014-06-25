@@ -9,14 +9,14 @@
 require 'fileutils'
 
 $LOAD_PATH.unshift(File.join(File.dirname(__FILE__), 'lib'))
-require 'node_template'
+require 'node'
 require 'federation_link'
 require 'shovel'
 
 HOST = `hostname -s`.chomp
 
 (1..5).each do |ix|
-  NodeTemplate.add(node_dir: "node#{ix}",
+  Node.add(node_dir: "node#{ix}",
                    node_name: "node#{ix}",
                    main_port: 5000 + ix,
                    mgmt_port: 3000 + ix)
@@ -46,8 +46,8 @@ topology = {
 
 topology.each_pair do |from_ix, to_ixs|
   [to_ixs].flatten.each do |to_ix|
-    from = NodeTemplate["node#{from_ix}"]
-    to = NodeTemplate["node#{to_ix}"]
+    from = Node["node#{from_ix}"]
+    to = Node["node#{to_ix}"]
     FederationLink.add(from.node_name,
                        HOST,
                        to.node_name,
@@ -72,7 +72,7 @@ end
   `rabbitmqadmin -P 300#{ix} declare binding source="shovel_test_dest" destination="shovel_listener" routing_key="*"`
 end
 
-NodeTemplate.render_all
-NodeTemplate.write_bins
+Node.render_all
+Node.write_bins
 FederationLink.write_bins
 Shovel.write_bins

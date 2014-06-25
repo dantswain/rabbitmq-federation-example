@@ -8,7 +8,7 @@ require 'federation_link'
 
 # Represents the configuration of a local node
 # generates a directory, config files, and start script for the node
-class NodeTemplate
+class Node
   @all_nodes = {}
   TEMPLATE_DIR = File.expand_path('../..', __FILE__)
   BIN_DIR = File.expand_path('../..', __FILE__)
@@ -37,7 +37,7 @@ class NodeTemplate
     # we just need the path of it here
     setup_feds = FederationLink.setup_feds
     generated_files = [start_all, stop_all, clean_all, setup_feds] +
-      NodeTemplate.all_nodes.each_value.map { |t| "start_#{t.node_name}" }
+      all_nodes.each_value.map { |t| "start_#{t.node_name}" }
 
     File.open(start_all, 'w') do |f|
       f.puts(all_nodes.each_value.map do |node|
@@ -53,7 +53,7 @@ class NodeTemplate
 
     File.open(clean_all, 'w') do |f|
       f.puts 'rm -rf ' +
-        NodeTemplate.all_nodes.each_value.map { |t| t.node_name }.join(' ')
+        all_nodes.each_value.map { |t| t.node_name }.join(' ')
       generated_files.each do |g|
         f.puts "rm -f #{g}"
       end
